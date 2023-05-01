@@ -4,6 +4,7 @@ import requests
 import random
 import re
 import os
+import sys
 from tkinter import *
 import subprocess as sub
 import pyttsx3
@@ -85,7 +86,6 @@ def extructurarData_Base():
 
 
 def validacion_user():
-    global namecontact_entry
     window_user = Toplevel()
     window_user.title("I-USER")
     window_user.geometry("300x350")
@@ -93,47 +93,52 @@ def validacion_user():
     window_user.configure(background="#666F80")
 
     lista = []
-    nombre = []
-    apellido = []
-    usuario = []
-    email = []
+
 
     def guardar():
-        nonlocal nombre, apellido, usuario, email
-        if nombre is str():
-            n = nombre.capitalize()
-            lista.append(n)
+        nonlocal nombre_entry, apellido_entry, usuario_entry, email_entry, lista
+        
+        nombre = nombre_entry.get()
+        apellido = apellido_entry.get()
+        usuario = usuario_entry.get()
+        email = email_entry.get()
+        
+        if nombre.isalpha():
+            lista.append(nombre.capitalize())
+            print(lista)
         else:
             talk("Por favor ingrese un nombre válido (solo letras).")
             return
 
-        if apellido is str():
-            a = apellido.capitalize()
-            lista.append(a)
+        if apellido.isalpha():
+            lista.append(apellido.capitalize())
+            print(lista)
         else:
             talk("Por favor ingrese un apellido válido (solo letras).")
             return
 
-        if usuario is str():
+        if usuario.isalnum():
             lista.append(usuario)
+            print(lista)
         else:
-            talk("Por favor ingrese un nombre de usuario válido (sin signos de puntuación).")
+            talk("Por favor ingrese un nombre de ususario válido (sin signos de puntuación).")
             return
 
-        if email is str():
+        if "@" in email and "." in email:
             lista.append(email)
+            print(lista)
         else:
             talk("Por favor ingrese un correo electrónico válido.")
             return
 
         window_user.destroy()
 
+
     title_label = Label(window_user, text="Incert Nombre",
                         fg="White", bg="#666F80", font=('Arial', 10, 'bold'))
     title_label.pack(pady=3)
 
     nombre_entry = Entry(window_user)
-    nombre.append(nombre_entry)
     nombre_entry.pack(pady=1)
     nombre_entry.focus()
     talk("Por favor introduzca un nombre válido (Solo Letras)")
@@ -143,7 +148,6 @@ def validacion_user():
     title_label.pack(pady=3)
 
     apellido_entry = Entry(window_user)
-    apellido.append(apellido_entry)
     apellido_entry.pack(pady=1)
     talk("Por favor introduzca un apellido válido (Solo Letras)")
 
@@ -152,7 +156,6 @@ def validacion_user():
     title_label.pack(pady=3)
 
     usuario_entry = Entry(window_user)
-    usuario.append(usuario_entry)
     usuario_entry.pack(pady=1)
     talk("Por favor usuario válido (Sin signos de puntuación)")
 
@@ -161,7 +164,6 @@ def validacion_user():
     title_label.pack(pady=3)
 
     email_entry = Entry(window_user)
-    email.append(email_entry)
     email_entry.pack(pady=1)
     talk("Por favor introduzca un correo válido")
 
@@ -170,6 +172,40 @@ def validacion_user():
     save_button.pack(pady=4)
 
     window_user.bind('<Return>', lambda event: guardar())
+
+    return lista
+    
+
+def procesar_usuario():
+    datos_usuario = validacion_user
+    if len(datos_usuario) == 4:
+        nombre = datos_usuario[0]
+        apellido = datos_usuario[1]
+        usuario = datos_usuario[2]
+        email = datos_usuario[3]
+        crear_user(nombre, apellido, usuario, email)
+    else:
+        talk("Error en los datos del usuario")
+
+def crear_user(nombre, apellido, usuario, email):
+    client = conexion()
+    db = client.MusicPlayList
+    cursor = db.usuario.find_one({"username":usuario})
+    if cursor is None:
+        user = ([{
+            "nombre":nombre,
+            "apellido":apellido,
+            "username":usuario,
+            "email":email
+        }])
+        db.usuario.insert_many(user)
+        talk("Usuario creado con éxito")
+        # Mensaje de confirmación
+        message = f"Se ha creado la cuenta para {usuario} con éxito."
+        messagebox.showinfo("Registro exitoso", message)
+    else:
+        talk(f"Ya existe un usuario ({usuario}) ")
+        talk("Por favor inténte con otro username")
 
     # def valida_user_name(username):
     #     # validar que el nombre de usuario no contiene espacios
@@ -193,37 +229,6 @@ def validacion_user():
     #         talk("El correo electrónico no es válido.")
     #         return False
     #     return True
-    def procesar_usuario():
-        datos_usuario = lista
-        if len(datos_usuario) == 4:
-            nombre = datos_usuario[0]
-            apellido = datos_usuario[1]
-            usuario = datos_usuario[2]
-            email = datos_usuario[3]
-            crear_user(nombre, apellido, usuario, email)
-        else:
-            talk("Error en los datos del usuario")
-
-def crear_user(nombre, apellido, usuario, email):
-    client = conexion()
-    db = client.MusicPlayList
-    cursor = db.usuario.find_one({"username":usuario})
-    if cursor is None:
-        user = ([{
-            "nombre":nombre,
-            "apellido":apellido,
-            "username":usuario,
-            "email":email
-        }])
-        db.usuario.insert_many(user)
-        talk("Usuario creado con éxito")
-        # Mensaje de confirmación
-        message = f"Se ha creado la cuenta para {usuario} con éxito."
-        messagebox.showinfo("Registro exitoso", message)
-    else:
-        talk(f"Ya existe un usuario ({usuario}) ")
-        talk("Por favor inténte con otro username")
-
     window_user.mainloop()
 
 

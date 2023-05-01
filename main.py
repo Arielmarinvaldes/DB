@@ -3,7 +3,7 @@ from funtions import funciones as f
 
 if __name__ == '__main__':
     print("\n")
-    print('Proyecto "MusicPlayList en MongoDB" por Yuniel Villalón.', end= "\n\n")
+    print('Proyecto "MusicPlayList en MongoDB"', end= "\n\n")
     print('Elija la "tarea" a realizar, escribiendo el Número correspondiente o fin para terminar.', end= "\n\n")
     print('1- Crear estrutura de la base de datos', end= "\n")
     print('2- Generar archivo Json de canciones', end= "\n")
