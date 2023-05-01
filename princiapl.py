@@ -34,7 +34,7 @@ canvas_comandos = Canvas(bg="#666F80", height=100, width=200)
 canvas_comandos.place(x=1, y=50)
 canvas_comandos.create_text(90, 50, fill="#FFFFFF", text=cm, font='Arial 5')
 
-canvas_dos = Canvas(bg="#C3C8D3", height=100, width=200)
+canvas_dos = Canvas(bg="#C3C8D3", height=300, width=200)
 canvas_dos.place(x=295, y=50)
 canvas_dos.create_text(90, 50, fill="#434343", font='Arial 5')
 
@@ -78,7 +78,7 @@ def abrir_ventana_agregar_artista():
             nombre_artista = nombre_artista_entry.get()
             url_principal = f"https://itunes.apple.com/search?term={nombre_artista}&limit=5"
             cl.Cancion.agregar_canciones_bd(url_principal)
-            ventana_agregar_artista.destroy()
+            
         except KeyError:
             talk("Error    No se pudo agregar ese artista")
 
@@ -86,34 +86,9 @@ def abrir_ventana_agregar_artista():
     save_button = Button(ventana_agregar_artista, text="Guardar", bg='#FF9EA0',
                         fg="black", width=7, height=1, command=actualizar_url_principal)
     save_button.pack(pady=4)
+ 
 
-
-# def incertar_user():
-#     global namecontact_entry
-#     window_user = Toplevel()
-#     window_user.title("I-USER")
-#     window_user.geometry("300x200")
-#     window_user.resizable(0, 0)
-#     window_user.configure(background="#666F80")
-#     main_window.eval(f'tk::PlaceWindow {str(window_user)} center')
-
-#     title_label = Label(window_user, text="Incert User",
-#                         fg="White", bg="#666F80", font=('Arial', 10, 'bold'))
-#     title_label.pack(pady=3)
-#     name_label = Label(window_user, text="User name", fg="White",
-#                        bg="#666F80", font=('Arial', 7, 'bold'))
-#     name_label.pack(pady=2)
-
-#     namecontact_entry = Entry(window_user)
-#     namecontact_entry.pack(pady=1)
-
-#     save_button = Button(window_user, text="Guardar", bg='#FF9EA0',
-#                          fg="black", width=7, height=1)
-#     save_button.pack(pady=4)
-
-# Botones para efectuar los pasos para crear y ehjecutar la base de datos
-
-button_paso_uno = Button(main_window, text="1", command=cl.extructurarData_Base)
+button_paso_uno = Button(main_window, text="1", command=cl.extructurandoData_Base)
 button_paso_uno.place(x=10, y=170)
 
 button_paso_dos = Button(main_window, text="2", command=abrir_ventana_agregar_artista)
@@ -122,10 +97,12 @@ button_paso_dos.place(x=50, y=170)
 button_paso_tres = Button(main_window, text="3", command=cl.validacion_user)
 button_paso_tres.place(x=90, y=170)
 
-button_paso_cuatro = Button(main_window, text="4")
+button_paso_cuatro = Button(main_window, text="4", command=cl.sugerencias)
 button_paso_cuatro.place(x=130, y=170)
 
 button_paso_cinco = Button(main_window, text="5", command=termina)
 button_paso_cinco.place(x=170, y=170)
+
+
 
 main_window.mainloop()

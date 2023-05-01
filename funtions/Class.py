@@ -56,9 +56,50 @@ class Cancion:
             )
             db.canciones.insert_one(cancion.__dict__)
 
-        print("Canciones insertadas en la base de datos.")
+        talk("Canciones insertadas en la base de datos.")
 
-def extructurarData_Base():
+class PlayList(object):
+
+    def __init__(self, nombre, usuario, canciones):
+        self.name = nombre
+        self.user = usuario
+        self.songs = canciones
+
+    def mostrar_sugerencias(self):
+        # Una lista de canciones aletorias con (nombre, cantante, id)
+        
+        # window_sug = Toplevel()
+        # window_sug.title("I-USER")
+        # window_sug.geometry("300x350")
+        # window_sug.resizable(0, 0)
+        # window_sug.configure(background="#666F80")
+        l = []
+        client = conexion()
+        db = client.MusicPlayList
+        for i in self.songs:
+            cursor = db.canciones.find({"_id": i})
+            if cursor:
+                for j in cursor:
+                    t = j["nombre"], j["cantante"]
+                    l.append(t)
+                    print(l)
+        return l
+
+    def crearplaylist (self):
+        client = conexion()
+        db = client.MusicPlayList
+        playlist = ([{
+            "nombre":self.name,
+            "username":self.user,
+            "canciones":[self.songs]
+            }])
+        db.playlist.insert_many(playlist)
+
+def sugerencias():
+    randon_songs = cl.lista_canciones()
+    p = cl.PlayList("PlayListGeneral", "admin", randon_songs)
+
+def extructurandoData_Base():
     client = conexion()
     db = client.MusicPlayList
     lc = db.list_collection_names()
@@ -80,11 +121,6 @@ def extructurarData_Base():
         talk("La colección canciones ya existe")
     
 
-# def validacion_email(correo):
-#     re = r"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"
-#     return re.match(re, correo) is not None
-
-
 def validacion_user():
     window_user = Toplevel()
     window_user.title("I-USER")
@@ -93,7 +129,6 @@ def validacion_user():
     window_user.configure(background="#666F80")
 
     lista = []
-
 
     def guardar():
         nonlocal nombre_entry, apellido_entry, usuario_entry, email_entry, lista
@@ -105,21 +140,19 @@ def validacion_user():
         
         if nombre.isalpha():
             lista.append(nombre.capitalize())
-            print(lista)
         else:
             talk("Por favor ingrese un nombre válido (solo letras).")
             return
 
         if apellido.isalpha():
             lista.append(apellido.capitalize())
-            print(lista)
         else:
             talk("Por favor ingrese un apellido válido (solo letras).")
             return
 
         if usuario.isalnum():
             lista.append(usuario)
-            print(lista)
+
         else:
             talk("Por favor ingrese un nombre de ususario válido (sin signos de puntuación).")
             return
@@ -131,6 +164,14 @@ def validacion_user():
             talk("Por favor ingrese un correo electrónico válido.")
             return
 
+        if len(lista) == 4:
+            nombre = lista[0]
+            apellido = lista[1]
+            usuario = lista[2]
+            email = lista[3]
+            crear_user(nombre, apellido, usuario, email)
+        else:
+            talk("Error en los datos del usuario")
         window_user.destroy()
 
 
@@ -173,19 +214,6 @@ def validacion_user():
 
     window_user.bind('<Return>', lambda event: guardar())
 
-    return lista
-    
-
-def procesar_usuario():
-    datos_usuario = validacion_user
-    if len(datos_usuario) == 4:
-        nombre = datos_usuario[0]
-        apellido = datos_usuario[1]
-        usuario = datos_usuario[2]
-        email = datos_usuario[3]
-        crear_user(nombre, apellido, usuario, email)
-    else:
-        talk("Error en los datos del usuario")
 
 def crear_user(nombre, apellido, usuario, email):
     client = conexion()
@@ -200,37 +228,30 @@ def crear_user(nombre, apellido, usuario, email):
         }])
         db.usuario.insert_many(user)
         talk("Usuario creado con éxito")
-        # Mensaje de confirmación
-        message = f"Se ha creado la cuenta para {usuario} con éxito."
-        messagebox.showinfo("Registro exitoso", message)
     else:
-        talk(f"Ya existe un usuario ({usuario}) ")
-        talk("Por favor inténte con otro username")
-
-    # def valida_user_name(username):
-    #     # validar que el nombre de usuario no contiene espacios
-    #     if " " in username:
-    #         talk("El nombre de usuario no puede contener espacios.")
-    #         return ""
-    #     return username
-
-    # def validacion_email(email):
-    #     # validar que el correo contiene un "@" y un "."
-    #     if "@" not in email and "." not in email:
-    #         talk("El correo electrónico no es válido.")
-    #         return False
-    #     return True
+        talk(f"Ya existe un usuario{usuario}")
+        talk("Por favor inténte con otro usuario")
 
 
-    # def validacion_email(email):
-    #     # validar que el correo tenga formato válido usando una expresión regular
-    #     regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    #     if not re.match(regex, email):
-    #         talk("El correo electrónico no es válido.")
-    #         return False
-    #     return True
-    window_user.mainloop()
+# def lista_canciones(cant = 20):
+#     # Una lista de 20 las canciones aleatorias
+#     lista = []
+#     client = conexion()
+#     db = client.MusicPlayList
+#     cursor = db.canciones.find()
+#     for song in cursor:
+#         lista.append(song["_id"])
+#     lista = random.sample(lista, cant)
+#     return lista
 
-
-
+def lista_canciones(cant=20):
+    # Una lista de 20 canciones aleatorias
+    lista = []
+    client = conexion()
+    db = client.MusicPlayList
+    cursor = db.canciones.aggregate([{"$sample": {"size": cant}}])
+    for song in cursor:
+        lista.append(song["_id"])
+        print(lista)
+    return lista
 
