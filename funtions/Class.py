@@ -5,13 +5,15 @@ import random
 import re
 import os
 import sys
-from tkinter import *
+import tkinter as tk
 import subprocess as sub
 import pyttsx3
 import pywhatkit
 import speech_recognition as sr
+from tkinter import *
 from tabulate import tabulate
 from pymongo import MongoClient
+
 
 
 engine = pyttsx3.init()
@@ -67,37 +69,233 @@ class PlayList(object):
 
     def mostrar_sugerencias(self):
         # Una lista de canciones aletorias con (nombre, cantante, id)
-        
-        # window_sug = Toplevel()
-        # window_sug.title("I-USER")
-        # window_sug.geometry("300x350")
-        # window_sug.resizable(0, 0)
-        # window_sug.configure(background="#666F80")
         l = []
         client = conexion()
         db = client.MusicPlayList
+        canciones = []
+        for e in self.songs:
+            cursor = db.canciones.find({"_id": e})
+            if cursor:
+                for j in cursor:
+                    sog = j
+                    canciones.append(sog)
+        playlist = {
+                "nombre":self.name,
+                "username":self.user,
+                "canciones":[canciones]
+                }
+        db.playlist.insert_one(playlist)
         for i in self.songs:
             cursor = db.canciones.find({"_id": i})
             if cursor:
-                for j in cursor:
-                    t = j["nombre"], j["cantante"]
-                    l.append(t)
-                    print(l)
+                for m in cursor:
+                    r = m["nombre"], m["cantante"]
+                    l.append(r)     
         return l
 
-    def crearplaylist (self):
-        client = conexion()
-        db = client.MusicPlayList
-        playlist = ([{
-            "nombre":self.name,
-            "username":self.user,
-            "canciones":[self.songs]
-            }])
-        db.playlist.insert_many(playlist)
 
-def sugerencias():
-    randon_songs = cl.lista_canciones()
-    p = cl.PlayList("PlayListGeneral", "admin", randon_songs)
+def num_sug():
+    global randon_songs
+    client = conexion()
+    db = client.MusicPlayList
+    
+    # Crear una lista vacía con el mismo número de elementos que randon_songs
+    songs = [None] * len(randon_songs)
+
+    # Iterar sobre los identificadores de canciones y agregar el diccionario a la posición correspondiente en la lista "songs"
+    for index, song_id in enumerate(randon_songs):
+        cursor = db.canciones.find({"_id": song_id})
+        if cursor:
+            for m in cursor:
+                k = {
+                    "nombre": m["nombre"],
+                    "cantante": m["cantante"],
+                    "genero": m["genero"],
+                    "album": m["album"],
+                    "url": m["url"]
+                }
+                songs[index] = k
+    
+    return songs
+
+
+def añadir_cancion(posicion):
+    global usuario
+    client = conexion()
+    db = client.MusicPlayList
+
+    # Obtener el diccionario de canción correspondiente a la posición del botón
+    cancion = num_sug()[posicion-1]
+    # Imprimir los datos de la canción en la consola para verificar
+    print("Nombre:", cancion["nombre"])
+    print("Cantante:", cancion["cantante"])
+    print("Género:", cancion["genero"])
+    print("Álbum:", cancion["album"])
+    print("URL:", cancion["url"])
+
+
+    cursor = db.usuario.find_one({"username": usuario})
+    if cursor is None:
+        # Si el usuario no tiene una lista de reproducción, crear una nueva con la canción seleccionada
+        song_pl = {
+            "nombre": nombre,
+            "username": usuario,
+            "canciones": [{
+                "nombre": cancion["nombre"],
+                "cantante": cancion["cantante"],
+                "genero": cancion["genero"],
+                "album": cancion["album"],
+                "url": cancion["url"]
+            }]
+        }
+        db.playlist.insert_one(song_pl)
+        talk("Lista de reproducción creada con éxito")
+    else:
+        # Si el usuario ya tiene una lista de reproducción, agregar la canción seleccionada a la lista existente
+        db.playlist.update_one(
+            {"nombre": nombre},
+            {"username": usuario},
+            {"$push": {
+                "canciones": {
+                    "nombre": cancion["nombre"],
+                    "cantante": cancion["cantante"],
+                    "genero": cancion["genero"],
+                    "album": cancion["album"],
+                    "url": cancion["url"]
+                }
+            }}
+        )
+        talk("Canción agregada con éxito")
+
+
+
+
+def num_sug_all():
+    client = conexion()
+    db = client.MusicPlayList
+    
+    # Construir lista de diccionarios de canciones
+    songs = []
+    for i in randon_songs:
+        cursor = db.canciones.find({"_id": i})
+        if cursor:
+            for m in cursor:
+                k = {
+                    "nombre": m["nombre"],
+                    "cantante": m["cantante"],
+                    "genero": m["genero"],
+                    "album": m["album"],
+                    "url": m["url"]
+                }
+                songs.append(k)
+    
+    # Construir lista de diccionarios de playlists
+    playlist = [{
+        "nombre": nombre,
+        "username": usuario,
+        "canciones": songs
+    }]
+    
+    # Insertar lista de playlists en la base de datos
+    db.playlist.insert_many(playlist)
+    
+    return playlist
+
+
+
+
+def sug_songs():
+    global window_sug, table_text
+    window_sug = Toplevel()
+    window_sug.title("I-USER")
+    window_sug.geometry("400x530")
+    window_sug.resizable(0, 0)
+    window_sug.configure(background="#666F80")
+
+    table_text = tk.Text(window_sug, height=20, width=60, font=('Arial', 6, 'bold'))
+    table_text.pack()
+
+    generate_button = tk.Button(window_sug, text="Generar sugerencias", bg='#FF9EA0', fg="black", command=mostrar_sugerencias)
+    generate_button.pack()
+
+    Label_title = Label(window_sug, text="Botones para agregar sugerencias de canciones", bg="#666F80",
+                    fg="black", font=('Arial', 8, 'bold'))
+    Label_title.pack(pady=5)
+
+    button_uno = Button(window_sug, text="1", width=2, command=lambda: añadir_cancion(1))
+    button_uno.place(x=3, y=380)
+
+    button_dos = Button(window_sug, text="2", width=2, command=lambda: añadir_cancion(2))
+    button_dos.place(x=43, y=380)
+
+    button_tres = Button(window_sug, text="3", width=2, command=lambda: añadir_cancion(3))
+    button_tres.place(x=83, y=380)
+
+    button_cuatro = Button(window_sug, text="4", width=2, command=lambda: añadir_cancion(4))
+    button_cuatro.place(x=123, y=380)
+
+    button_cinco = Button(window_sug, text="5", width=2, command=lambda: añadir_cancion(5))
+    button_cinco.place(x=163, y=380)
+
+    button_seis = Button(window_sug, text="6", width=2, command=lambda: añadir_cancion(6))
+    button_seis.place(x=203, y=380)
+
+    button_siete = Button(window_sug, text="7", width=2, command=lambda: añadir_cancion(7))
+    button_siete.place(x=243, y=380)
+
+    button_ocho = Button(window_sug, text="8", width=2, command=lambda: añadir_cancion(8))
+    button_ocho.place(x=283, y=380)
+
+    button_nueve = Button(window_sug, text="9", width=2, command=lambda: añadir_cancion(9))
+    button_nueve.place(x=323, y=380)
+
+    button_diez = Button(window_sug, text="10", width=2, command=lambda: añadir_cancion(10))
+    button_diez.place(x=365, y=380)
+
+    button_once = Button(window_sug, text="11", width=2, command=lambda: añadir_cancion(11))
+    button_once.place(x=3, y=430)
+
+    button_doce = Button(window_sug, text="12", width=2, command=lambda: añadir_cancion(12))
+    button_doce.place(x=43, y=430)
+
+    button_trece = Button(window_sug, text="13", width=2, command=lambda: añadir_cancion(13))
+    button_trece.place(x=83, y=430)
+
+    button_catorce = Button(window_sug, text="14", width=2, command=lambda: añadir_cancion(14))
+    button_catorce.place(x=123, y=430)
+
+    button_quince = Button(window_sug, text="15", width=2, command=lambda: añadir_cancion(15))
+    button_quince.place(x=163, y=430)
+
+    button_dseis = Button(window_sug, text="16", width=2, command=lambda: añadir_cancion(16))
+    button_dseis.place(x=203, y=430)
+
+    button_dsiete = Button(window_sug, text="17", width=2, command=lambda: añadir_cancion(17))
+    button_dsiete.place(x=243, y=430)
+
+    button_docho = Button(window_sug, text="18", width=2, command=lambda: añadir_cancion(18))
+    button_docho.place(x=283, y=430)
+
+    button_dnueve = Button(window_sug, text="19", width=2, command=lambda: añadir_cancion(19))
+    button_dnueve.place(x=323, y=430)
+
+    button_veinte = Button(window_sug, text="20", width=2, command=lambda: añadir_cancion(20))
+    button_veinte.place(x=365, y=430)
+
+    button_todas = Button(window_sug, text="Añadir Todas", width=10, command=num_sug_all)
+    button_todas.place(x=145, y=480)
+
+    window_sug.mainloop()
+
+def mostrar_sugerencias():
+    global randon_songs
+    randon_songs = lista_canciones()
+    p = PlayList("PlayListGeneral", "admin", randon_songs)
+    e = list(enumerate(p.mostrar_sugerencias(), start=1))
+    table = tabulate(e, headers=['#', 'Nombre  -  Cantante'])
+    table_text.insert(tk.END, table)
+
+
 
 def extructurandoData_Base():
     client = conexion()
@@ -131,6 +329,7 @@ def validacion_user():
     lista = []
 
     def guardar():
+        global nombre, usuario
         nonlocal nombre_entry, apellido_entry, usuario_entry, email_entry, lista
         
         nombre = nombre_entry.get()
@@ -159,7 +358,6 @@ def validacion_user():
 
         if "@" in email and "." in email:
             lista.append(email)
-            print(lista)
         else:
             talk("Por favor ingrese un correo electrónico válido.")
             return
@@ -252,6 +450,5 @@ def lista_canciones(cant=20):
     cursor = db.canciones.aggregate([{"$sample": {"size": cant}}])
     for song in cursor:
         lista.append(song["_id"])
-        print(lista)
     return lista
 

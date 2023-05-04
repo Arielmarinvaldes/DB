@@ -86,7 +86,7 @@ def abrir_ventana_agregar_artista():
     save_button = Button(ventana_agregar_artista, text="Guardar", bg='#FF9EA0',
                         fg="black", width=7, height=1, command=actualizar_url_principal)
     save_button.pack(pady=4)
- 
+
 
 button_paso_uno = Button(main_window, text="1", command=cl.extructurandoData_Base)
 button_paso_uno.place(x=10, y=170)
@@ -97,7 +97,7 @@ button_paso_dos.place(x=50, y=170)
 button_paso_tres = Button(main_window, text="3", command=cl.validacion_user)
 button_paso_tres.place(x=90, y=170)
 
-button_paso_cuatro = Button(main_window, text="4", command=cl.sugerencias)
+button_paso_cuatro = Button(main_window, text="4", command=cl.sug_songs)
 button_paso_cuatro.place(x=130, y=170)
 
 button_paso_cinco = Button(main_window, text="5", command=termina)
