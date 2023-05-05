@@ -1,4 +1,3 @@
-from tkinter import *
 import subprocess as sub
 import pyttsx3
 import pywhatkit
@@ -6,6 +5,7 @@ import speech_recognition as sr
 import json
 import requests
 import pymongo
+from tkinter import *
 from pymongo import MongoClient
 from funtions import Class as cl
 
@@ -13,12 +13,12 @@ from funtions import Class as cl
 # Crear ventana principal
 main_window = Tk()
 main_window.title("GUI")
-main_window.geometry("500x400")
+main_window.geometry("300x400")
 main_window.resizable(0, 0)
 main_window.configure(bg='#FF9EA0')
 
-Label_title = Label(main_window, text="Proyecto 2 por Ariel Marín", bg="#FF9EA0",
-                    fg="black", font=('Arial', 12, 'bold'))
+Label_title = Label(main_window, text="Proyecto II por Ariel Marín", bg="#FF9EA0",
+                    fg="black", font=('Arial', 10, 'bold'))
 Label_title.pack(pady=5)
 
 cm = """
@@ -30,13 +30,11 @@ Por favor siga los pasos
 4- mostrar sugerencias
 5- finalizar el programa
 """
-canvas_comandos = Canvas(bg="#666F80", height=100, width=200)
-canvas_comandos.place(x=1, y=50)
-canvas_comandos.create_text(90, 50, fill="#FFFFFF", text=cm, font='Arial 5')
 
-canvas_dos = Canvas(bg="#C3C8D3", height=300, width=200)
-canvas_dos.place(x=295, y=50)
-canvas_dos.create_text(90, 50, fill="#434343", font='Arial 5')
+canvas_comandos = Canvas(bg="#666F80", height=130, width=250)
+canvas_comandos.place(x=25, y=50)
+canvas_comandos.create_text(125, 65, fill="#FFFFFF", text=cm, font='Arial 7')
+
 
 engine = pyttsx3.init()
 voices = engine.getProperty('voices')
@@ -55,6 +53,12 @@ def termina():
 
 
 def abrir_ventana_agregar_artista():
+
+    # Verificar si la base de datos existe antes de continuar
+    if "MusicPlayList" not in cl.conexion_verificacion().client.list_database_names():
+        talk("No puedes agregar artistas sin crear la base de datos")
+        return
+
     # Crear ventana emergente para agregar artista
     ventana_agregar_artista = Toplevel()
     ventana_agregar_artista.title("Agregar Artista")
@@ -88,20 +92,20 @@ def abrir_ventana_agregar_artista():
     save_button.pack(pady=4)
 
 
-button_paso_uno = Button(main_window, text="1", command=cl.extructurandoData_Base)
-button_paso_uno.place(x=10, y=170)
+button_paso_uno = Button(main_window, text="1", width=2, command=cl.extructurandoData_Base)
+button_paso_uno.place(x=35, y=190)
 
-button_paso_dos = Button(main_window, text="2", command=abrir_ventana_agregar_artista)
-button_paso_dos.place(x=50, y=170)
+button_paso_dos = Button(main_window, text="2", width=2, command=abrir_ventana_agregar_artista)
+button_paso_dos.place(x=76, y=190)
 
-button_paso_tres = Button(main_window, text="3", command=cl.validacion_user)
-button_paso_tres.place(x=90, y=170)
+button_paso_tres = Button(main_window, text="3", width=2, command=cl.validacion_user)
+button_paso_tres.place(x=117, y=190)
 
-button_paso_cuatro = Button(main_window, text="4", command=cl.sug_songs)
-button_paso_cuatro.place(x=130, y=170)
+button_paso_cuatro = Button(main_window, text="4", width=2, command=cl.interfaz_botones)
+button_paso_cuatro.place(x=158, y=190)
 
-button_paso_cinco = Button(main_window, text="5", command=termina)
-button_paso_cinco.place(x=170, y=170)
+button_paso_cinco = Button(main_window, text="5", width=2, bg='#DC2727', command=termina)
+button_paso_cinco.place(x=240, y=190)
 
 
 

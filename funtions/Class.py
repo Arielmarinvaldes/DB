@@ -30,6 +30,10 @@ def conexion():
     client = pymongo.MongoClient("mongodb://localhost:27017")
     return client
 
+def conexion_verificacion():
+    client = pymongo.MongoClient("mongodb://localhost:27017")
+    return client["MusicPlayList"]
+
 class Cancion:
     def __init__(self, nombre, cantante, genero, album, url):
         self.nombre = nombre
@@ -66,6 +70,35 @@ class PlayList(object):
         self.name = nombre
         self.user = usuario
         self.songs = canciones
+
+    def __str__():
+        client = conexion()
+        db = client.MusicPlayList
+        try:
+            cursor = db.playlist.find({"username": usuario})
+            playlist_str = ""
+            for pl in cursor:
+                for song in pl["canciones"]:
+                    cancion = song["nombre"]
+                    cantante = song["cantante"]
+                    genero = song["genero"]
+                    playlist_str += f"{cancion} de {cantante}\n"
+                    print(f"{cancion}\n{cantante}\n{genero}\n")
+
+            if playlist_str:
+                talk(f"Las canciones de la playlist del usuario {usuario} son:")
+                talk(playlist_str)
+            # Obtener todas las playlists
+            playlist = db.playlist.find_one({"username": usuario})
+
+            if playlist:
+                num_canciones = len(playlist["canciones"])
+                talk(f"La playlist del usuario {usuario} tiene {num_canciones} canciones.")
+            else:
+                talk(f"El usuario {usuario} no tiene canciones añadidas")
+        except NameError:
+            talk("No puedes consultar canciones mientra no crees un usuario")    
+            window_sug.destroy()
 
     def mostrar_sugerencias(self):
         # Una lista de canciones aletorias con (nombre, cantante, id)
@@ -117,48 +150,51 @@ def num_sug():
                     songs[index] = k
     except NameError:
         talk("No puedes añadir canciones mientras no existan sugerencias")
+        window_sug.destroy()
     return songs
 
 
 def añadir_cancion(posicion):
-    client = conexion()
-    db = client.MusicPlayList
+    try:
+        client = conexion()
+        db = client.MusicPlayList
 
-    # Obtener el diccionario de canción correspondiente a la posición del botón
-    cancion = num_sug()[posicion-1]
+        # Obtener el diccionario de canción correspondiente a la posición del botón
+        cancion = num_sug()[posicion-1]
 
-    cursor = db.playlist.find_one({"username": usuario})
-    if cursor is None:
-        # Si el usuario no tiene una lista de reproducción, crear una nueva con la canción seleccionada
-        song_pl = {
-            "nombre": nombre,
-            "username": usuario,
-            "canciones": [{
-                "nombre": cancion["nombre"],
-                "cantante": cancion["cantante"],
-                "genero": cancion["genero"],
-                "album": cancion["album"],
-                "url": cancion["url"]
-            }]
-        }
-        db.playlist.insert_one(song_pl)
-        talk("Lista de reproducción creada con éxito")
-
-    else:
-        db.playlist.update_one(
-            {"username": usuario},
-            {"$push": {
-                "canciones": {
+        cursor = db.playlist.find_one({"username": usuario})
+        if cursor is None:
+            # Si el usuario no tiene una lista de reproducción, crear una nueva con la canción seleccionada
+            song_pl = {
+                "nombre": nombre,
+                "username": usuario,
+                "canciones": [{
                     "nombre": cancion["nombre"],
                     "cantante": cancion["cantante"],
                     "genero": cancion["genero"],
                     "album": cancion["album"],
                     "url": cancion["url"]
-                }
-            }}
-        )
-        talk("Canción agregada con éxito")
-       
+                }]
+            }
+            db.playlist.insert_one(song_pl)
+            talk("Lista de reproducción creada con éxito")
+
+        else:
+            db.playlist.update_one(
+                {"username": usuario},
+                {"$push": {
+                    "canciones": {
+                        "nombre": cancion["nombre"],
+                        "cantante": cancion["cantante"],
+                        "genero": cancion["genero"],
+                        "album": cancion["album"],
+                        "url": cancion["url"]
+                    }
+                }}
+            )
+            talk("Canción agregada con éxito")
+    except IndexError:
+        talk("No puedes añadir canciones que no existen")
 
 def num_sug_all():
     client = conexion()
@@ -212,9 +248,15 @@ def num_sug_all():
             talk("Se han añadido todas las canciones a tu playlist")
     except NameError:
         talk("No puedes añadir canciones mientras no existan sugerencias")
+        window_sug.destroy()
 
+def interfaz_botones():
 
-def sug_songs():
+    # Verificar si la base de datos existe antes de continuar
+    if "MusicPlayList" not in conexion_verificacion().client.list_database_names():
+        talk("No puedes mostrar sugerencias sin crear la base de datos")
+        return
+
     global window_sug, table_text
     window_sug = Toplevel()
     window_sug.title("I-USER")
@@ -222,10 +264,10 @@ def sug_songs():
     window_sug.resizable(0, 0)
     window_sug.configure(background="#666F80")
 
-    table_text = tk.Text(window_sug, height=20, width=60, font=('Arial', 6, 'bold'))
+    table_text = Text(window_sug, height=20, width=60, font=('Arial', 6, 'bold'))
     table_text.pack()
 
-    generate_button = tk.Button(window_sug, text="Generar sugerencias", bg='#FF9EA0', fg="black", command=mostrar_sugerencias)
+    generate_button = Button(window_sug, text="Generar sugerencias", bg='#FF9EA0', fg="black", command=mostrar_sugerencias)
     generate_button.pack()
 
     Label_title = Label(window_sug, text="Botones para agregar sugerencias de canciones", bg="#666F80",
@@ -298,7 +340,7 @@ def sug_songs():
     button_todas = Button(window_sug, text="Tus playlist", width=10, command=count_playlists)
     button_todas.place(x=5, y=480)
 
-    button_todas = Button(window_sug, text="Tus canciones", width=11, command=contar_canciones_por_playlist)
+    button_todas = Button(window_sug, text="Tus canciones", width=11, command=PlayList.__str__)
     button_todas.place(x=275, y=480)
 
     window_sug.mainloop()
@@ -314,12 +356,12 @@ def mostrar_sugerencias():
             p = PlayList("PlayListGeneral", "admin", randon_songs)
             e = list(enumerate(p.mostrar_sugerencias(), start=1))
             table = tabulate(e, headers=['#', 'Nombre  -  Cantante'])
-            table_text.insert(tk.END, table)
+            table_text.insert(END, table)
         else:
             talk("No existe un usuario para generar sugerencias por favor cree un usuario")
     except NameError:
         talk("No existe un usuario para generar sugerencias por favor cree un usuario")
-
+        window_sug.destroy()
 
 
 def extructurandoData_Base():
@@ -345,6 +387,12 @@ def extructurandoData_Base():
     
 
 def validacion_user():
+
+    # Verificar si la base de datos existe antes de continuar
+    if "MusicPlayList" not in conexion_verificacion().client.list_database_names():
+        talk("No puedes agregar un usuario sin crear la base de datos")
+        return
+
     window_user = Toplevel()
     window_user.title("I-USER")
     window_user.geometry("300x350")
@@ -475,22 +523,7 @@ def count_playlists():
         if count > 0:
             talk(f"Hay {count} playlist del usuario {usuario}")
         else:
-            talk(f"No se encontraron playlist del usuario {usuario},  añada canciones para crear una playlist")
+            talk(f"No se encontraron playlist del usuario {usuario},   añada canciones para crear una playlist")
     except NameError:
         talk("No puedes consultar playlist mientra no crees un usuario")
-
-
-def contar_canciones_por_playlist():
-    client = conexion()
-    db = client.MusicPlayList
-    try:
-        # Obtener todas las playlists
-        playlist = db.playlist.find_one({"username": usuario})
-
-        if playlist:
-            num_canciones = len(playlist["canciones"])
-            talk(f"La playlist de {usuario} tiene {num_canciones} canciones.")
-        else:
-            talk(f"El usuario {usuario} no tiene canciones añadidas")
-    except NameError:
-        talk("No puedes consultar canciones mientra no crees un usuario")
+        window_sug.destroy()
