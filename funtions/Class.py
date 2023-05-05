@@ -98,43 +98,36 @@ def num_sug():
     global randon_songs
     client = conexion()
     db = client.MusicPlayList
-    
-    # Crear una lista vacía con el mismo número de elementos que randon_songs
-    songs = [None] * len(randon_songs)
+    try:
+        # Crear una lista vacía con el mismo número de elementos que randon_songs
+        songs = [None] * len(randon_songs)
 
-    # Iterar sobre los identificadores de canciones y agregar el diccionario a la posición correspondiente en la lista "songs"
-    for index, song_id in enumerate(randon_songs):
-        cursor = db.canciones.find({"_id": song_id})
-        if cursor:
-            for m in cursor:
-                k = {
-                    "nombre": m["nombre"],
-                    "cantante": m["cantante"],
-                    "genero": m["genero"],
-                    "album": m["album"],
-                    "url": m["url"]
-                }
-                songs[index] = k
-    
+        # Iterar sobre los identificadores de canciones y agregar el diccionario a la posición correspondiente en la lista "songs"
+        for index, song_id in enumerate(randon_songs):
+            cursor = db.canciones.find({"_id": song_id})
+            if cursor:
+                for m in cursor:
+                    k = {
+                        "nombre": m["nombre"],
+                        "cantante": m["cantante"],
+                        "genero": m["genero"],
+                        "album": m["album"],
+                        "url": m["url"]
+                    }
+                    songs[index] = k
+    except NameError:
+        talk("No puedes añadir canciones mientras no existan sugerencias")
     return songs
 
 
 def añadir_cancion(posicion):
-    global usuario
     client = conexion()
     db = client.MusicPlayList
 
     # Obtener el diccionario de canción correspondiente a la posición del botón
     cancion = num_sug()[posicion-1]
-    # Imprimir los datos de la canción en la consola para verificar
-    print("Nombre:", cancion["nombre"])
-    print("Cantante:", cancion["cantante"])
-    print("Género:", cancion["genero"])
-    print("Álbum:", cancion["album"])
-    print("URL:", cancion["url"])
 
-
-    cursor = db.usuario.find_one({"username": usuario})
+    cursor = db.playlist.find_one({"username": usuario})
     if cursor is None:
         # Si el usuario no tiene una lista de reproducción, crear una nueva con la canción seleccionada
         song_pl = {
@@ -150,10 +143,9 @@ def añadir_cancion(posicion):
         }
         db.playlist.insert_one(song_pl)
         talk("Lista de reproducción creada con éxito")
+
     else:
-        # Si el usuario ya tiene una lista de reproducción, agregar la canción seleccionada a la lista existente
         db.playlist.update_one(
-            {"nombre": nombre},
             {"username": usuario},
             {"$push": {
                 "canciones": {
@@ -166,42 +158,60 @@ def añadir_cancion(posicion):
             }}
         )
         talk("Canción agregada con éxito")
-
-
-
+       
 
 def num_sug_all():
     client = conexion()
     db = client.MusicPlayList
-    
-    # Construir lista de diccionarios de canciones
+        # Construir lista de diccionarios de canciones
     songs = []
-    for i in randon_songs:
-        cursor = db.canciones.find({"_id": i})
-        if cursor:
-            for m in cursor:
-                k = {
-                    "nombre": m["nombre"],
-                    "cantante": m["cantante"],
-                    "genero": m["genero"],
-                    "album": m["album"],
-                    "url": m["url"]
-                }
-                songs.append(k)
-    
-    # Construir lista de diccionarios de playlists
-    playlist = [{
-        "nombre": nombre,
-        "username": usuario,
-        "canciones": songs
-    }]
-    
-    # Insertar lista de playlists en la base de datos
-    db.playlist.insert_many(playlist)
-    
-    return playlist
-
-
+    songs_d = []
+    try:
+        cursor = db.playlist.find_one({"username": usuario})
+        if cursor is None:
+            for i in randon_songs:
+                cursor = db.canciones.find({"_id": i})
+                if cursor:
+                    for m in cursor:
+                        k = {
+                            "nombre": m["nombre"],
+                            "cantante": m["cantante"],
+                            "genero": m["genero"],
+                            "album": m["album"],
+                            "url": m["url"]
+                        }
+                        songs.append(k)
+            # Construir lista de diccionarios de playlists
+            playlist = [{
+                "nombre": nombre,
+                "username": usuario,
+                "canciones": songs
+            }]
+            talk("La playlist se a creado con todas las canciones")
+            # Insertar lista de playlists en la base de datos
+            db.playlist.insert_many(playlist)
+        else:
+            for i in randon_songs:
+                cursor = db.canciones.find({"_id": i})
+                if cursor:
+                    for m in cursor:
+                        g = {
+                            "nombre": m["nombre"],
+                            "cantante": m["cantante"],
+                            "genero": m["genero"],
+                            "album": m["album"],
+                            "url": m["url"]
+                        }
+                        songs_d.append(g)
+            db.playlist.update_one(
+                {"username": usuario},
+                {"$push": {
+                    "canciones": songs_d
+                }}
+            )
+            talk("Se han añadido todas las canciones a tu playlist")
+    except NameError:
+        talk("No puedes añadir canciones mientras no existan sugerencias")
 
 
 def sug_songs():
@@ -283,17 +293,32 @@ def sug_songs():
     button_veinte.place(x=365, y=430)
 
     button_todas = Button(window_sug, text="Añadir Todas", width=10, command=num_sug_all)
-    button_todas.place(x=145, y=480)
+    button_todas.place(x=140, y=480)
+
+    button_todas = Button(window_sug, text="Tus playlist", width=10, command=count_playlists)
+    button_todas.place(x=5, y=480)
+
+    button_todas = Button(window_sug, text="Tus canciones", width=11, command=contar_canciones_por_playlist)
+    button_todas.place(x=275, y=480)
 
     window_sug.mainloop()
 
 def mostrar_sugerencias():
-    global randon_songs
-    randon_songs = lista_canciones()
-    p = PlayList("PlayListGeneral", "admin", randon_songs)
-    e = list(enumerate(p.mostrar_sugerencias(), start=1))
-    table = tabulate(e, headers=['#', 'Nombre  -  Cantante'])
-    table_text.insert(tk.END, table)
+    client = conexion()
+    db = client.MusicPlayList
+    try:
+        cursor = db.usuario.find_one({"username": usuario})
+        if cursor:
+            global randon_songs
+            randon_songs = lista_canciones()
+            p = PlayList("PlayListGeneral", "admin", randon_songs)
+            e = list(enumerate(p.mostrar_sugerencias(), start=1))
+            table = tabulate(e, headers=['#', 'Nombre  -  Cantante'])
+            table_text.insert(tk.END, table)
+        else:
+            talk("No existe un usuario para generar sugerencias por favor cree un usuario")
+    except NameError:
+        talk("No existe un usuario para generar sugerencias por favor cree un usuario")
 
 
 
@@ -431,17 +456,6 @@ def crear_user(nombre, apellido, usuario, email):
         talk("Por favor inténte con otro usuario")
 
 
-# def lista_canciones(cant = 20):
-#     # Una lista de 20 las canciones aleatorias
-#     lista = []
-#     client = conexion()
-#     db = client.MusicPlayList
-#     cursor = db.canciones.find()
-#     for song in cursor:
-#         lista.append(song["_id"])
-#     lista = random.sample(lista, cant)
-#     return lista
-
 def lista_canciones(cant=20):
     # Una lista de 20 canciones aleatorias
     lista = []
@@ -452,3 +466,31 @@ def lista_canciones(cant=20):
         lista.append(song["_id"])
     return lista
 
+
+def count_playlists():
+    client = conexion()
+    db = client.MusicPlayList
+    try:
+        count = db.playlist.count_documents({"username": usuario})
+        if count > 0:
+            talk(f"Hay {count} playlist del usuario {usuario}")
+        else:
+            talk(f"No se encontraron playlist del usuario {usuario},  añada canciones para crear una playlist")
+    except NameError:
+        talk("No puedes consultar playlist mientra no crees un usuario")
+
+
+def contar_canciones_por_playlist():
+    client = conexion()
+    db = client.MusicPlayList
+    try:
+        # Obtener todas las playlists
+        playlist = db.playlist.find_one({"username": usuario})
+
+        if playlist:
+            num_canciones = len(playlist["canciones"])
+            talk(f"La playlist de {usuario} tiene {num_canciones} canciones.")
+        else:
+            talk(f"El usuario {usuario} no tiene canciones añadidas")
+    except NameError:
+        talk("No puedes consultar canciones mientra no crees un usuario")
