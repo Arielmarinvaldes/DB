@@ -93,20 +93,19 @@ def abrir_ventana_agregar_artista():
 
 
 button_paso_uno = Button(main_window, text="1", width=2, command=cl.extructurandoData_Base)
-button_paso_uno.place(x=35, y=190)
+button_paso_uno.place(x=50, y=170)
 
 button_paso_dos = Button(main_window, text="2", width=2, command=abrir_ventana_agregar_artista)
-button_paso_dos.place(x=76, y=190)
+button_paso_dos.place(x=50, y=170)
 
 button_paso_tres = Button(main_window, text="3", width=2, command=cl.validacion_user)
 button_paso_tres.place(x=117, y=190)
 
 button_paso_cuatro = Button(main_window, text="4", width=2, command=cl.interfaz_botones)
-button_paso_cuatro.place(x=158, y=190)
+button_paso_cuatro.place(x=90, y=170)
 
 button_paso_cinco = Button(main_window, text="5", width=2, bg='#DC2727', command=termina)
-button_paso_cinco.place(x=240, y=190)
-
+button_paso_cinco.place(x=170, y=170)
 
 
 main_window.mainloop()
